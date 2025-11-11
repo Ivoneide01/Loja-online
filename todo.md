@@ -12,5 +12,4 @@
 - [x] Implementar galeria de "Clientes Satisfeitos"
 - [x] Implementar lightbox para visualizar imagens
 - [x] Adicionar informações de contato (WhatsApp, email, telefone)
-- [ ] Implementar responsividade para dispositivos móveis
-- [ ] Melhorar design visual e UX da interface
+- [x] Implementar responsividade para dispositivos móveis
