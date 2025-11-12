@@ -24,8 +24,11 @@ interface Customer {
   address: string;
 }
 
+type PaymentMethod = "pix" | "credit" | "debit";
+
 const BRAND_TECH = ["Apple", "Xiaomi", "Samsung", "Motorola"];
 const BRAND_TOOLS = ["Bosch", "Makita", "Bonvink"];
+const PIX_KEYS = ["63455081000134", "11932539543"];
 
 function generateProducts() {
   const products = [];
@@ -149,6 +152,8 @@ export default function Home() {
     address: "",
   });
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
+  const [loadingPayment, setLoadingPayment] = useState(false);
 
   const categories = useMemo(
     () => ["Todos", "Tecnologia", "Brinquedos", "Casa", "Ferramentas", "Automotivos"],
@@ -195,12 +200,46 @@ export default function Home() {
     setCheckoutOpen(true);
   }
 
-  function confirmPayment() {
-    alert(
-      "Confirme o pagamento via PIX para: maxtilleletronicos4@gmail.com. Após o pagamento, envie o comprovante pelo WhatsApp."
-    );
-    setCart([]);
-    setCheckoutOpen(false);
+  async function confirmPayment() {
+    setLoadingPayment(true);
+    try {
+      if (paymentMethod === "pix") {
+        const pixKey = PIX_KEYS[Math.floor(Math.random() * PIX_KEYS.length)];
+        alert(
+          `Confirme o pagamento via PIX\n\nChave PIX: ${pixKey}\n\nValor: R$ ${totalPrice}\n\nApós o pagamento, envie o comprovante pelo WhatsApp (11) 98326-1493.`
+        );
+        setCart([]);
+        setCheckoutOpen(false);
+      } else if (paymentMethod === "credit" || paymentMethod === "debit") {
+        const response = await fetch("/api/stripe/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: cart.map((item) => ({
+              name: item.title,
+              price: Math.round(parseFloat(item.price) * 100),
+              quantity: item.qty,
+            })),
+            customer: customer,
+            paymentMethod: paymentMethod,
+          }),
+        });
+
+        const data = await response.json();
+        if (data.checkoutUrl) {
+          window.open(data.checkoutUrl, "_blank");
+          setCart([]);
+          setCheckoutOpen(false);
+        } else {
+          alert("Erro ao processar pagamento. Tente novamente.");
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao processar pagamento:", error);
+      alert("Erro ao processar pagamento. Tente novamente.");
+    } finally {
+      setLoadingPayment(false);
+    }
   }
 
   const totalPrice = cart.reduce((s, c) => s + parseFloat(c.price) * c.qty, 0).toFixed(2);
@@ -571,6 +610,7 @@ export default function Home() {
                 <X size={24} />
               </button>
             </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
               <input
                 placeholder="Nome completo"
@@ -605,16 +645,97 @@ export default function Home() {
                 }
               />
             </div>
-            <div className="mt-4 bg-orange-50 p-3 rounded">
-              <p className="font-semibold text-gray-800 text-sm">Pagamento via PIX</p>
-              <p className="text-sm text-gray-700 mt-1">
-                Chave PIX:{" "}
-                <span className="font-medium">maxtilleletronicos4@gmail.com</span>
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Após o pagamento, envie o comprovante pelo WhatsApp de suporte.
-              </p>
+
+            {/* Payment Method Selection */}
+            <div className="mt-4 space-y-3">
+              <p className="font-semibold text-gray-800 text-sm">Escolha o meio de pagamento:</p>
+
+              <label className="flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition"
+                style={{
+                  borderColor: paymentMethod === "pix" ? "#ea580c" : "#e5e7eb",
+                  backgroundColor: paymentMethod === "pix" ? "#fff7ed" : "white"
+                }}
+              >
+                <input
+                  type="radio"
+                  name="payment"
+                  value="pix"
+                  checked={paymentMethod === "pix"}
+                  onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                  className="w-4 h-4"
+                />
+                <div>
+                  <p className="font-semibold text-gray-800 text-sm">PIX</p>
+                  <p className="text-xs text-gray-600">Transferência instantânea</p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition"
+                style={{
+                  borderColor: paymentMethod === "credit" ? "#ea580c" : "#e5e7eb",
+                  backgroundColor: paymentMethod === "credit" ? "#fff7ed" : "white"
+                }}
+              >
+                <input
+                  type="radio"
+                  name="payment"
+                  value="credit"
+                  checked={paymentMethod === "credit"}
+                  onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                  className="w-4 h-4"
+                />
+                <div>
+                  <p className="font-semibold text-gray-800 text-sm">Cartão de Crédito</p>
+                  <p className="text-xs text-gray-600">Parcelado em até 12x</p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition"
+                style={{
+                  borderColor: paymentMethod === "debit" ? "#ea580c" : "#e5e7eb",
+                  backgroundColor: paymentMethod === "debit" ? "#fff7ed" : "white"
+                }}
+              >
+                <input
+                  type="radio"
+                  name="payment"
+                  value="debit"
+                  checked={paymentMethod === "debit"}
+                  onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                  className="w-4 h-4"
+                />
+                <div>
+                  <p className="font-semibold text-gray-800 text-sm">Cartão de Débito</p>
+                  <p className="text-xs text-gray-600">Debitado na hora</p>
+                </div>
+              </label>
             </div>
+
+            {/* Payment Info */}
+            {paymentMethod === "pix" && (
+              <div className="mt-4 bg-blue-50 p-3 rounded border border-blue-200">
+                <p className="font-semibold text-gray-800 text-sm">Pagamento via PIX</p>
+                <p className="text-xs text-gray-600 mt-2">
+                  Você receberá uma chave PIX aleatória para transferir o valor de <strong>R$ {totalPrice}</strong>.
+                </p>
+                <p className="text-xs text-gray-600 mt-2">
+                  Após o pagamento, envie o comprovante pelo WhatsApp: <strong>(11) 98326-1493</strong>
+                </p>
+              </div>
+            )}
+
+            {(paymentMethod === "credit" || paymentMethod === "debit") && (
+              <div className="mt-4 bg-green-50 p-3 rounded border border-green-200">
+                <p className="font-semibold text-gray-800 text-sm">Pagamento com Cartão</p>
+                <p className="text-xs text-gray-600 mt-2">
+                  Você será redirecionado para a página segura de pagamento da Stripe.
+                </p>
+                <p className="text-xs text-gray-600 mt-2">
+                  Valor total: <strong>R$ {totalPrice}</strong>
+                </p>
+              </div>
+            )}
+
             <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-end">
               <button
                 className="px-4 py-2 border rounded hover:bg-gray-50 transition text-sm font-semibold"
@@ -623,10 +744,11 @@ export default function Home() {
                 Voltar
               </button>
               <button
-                className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition font-semibold text-sm"
+                className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={confirmPayment}
+                disabled={loadingPayment}
               >
-                Confirmar e mostrar PIX
+                {loadingPayment ? "Processando..." : `Confirmar Pagamento (${paymentMethod === "pix" ? "PIX" : paymentMethod === "credit" ? "Crédito" : "Débito"})`}
               </button>
             </div>
           </div>

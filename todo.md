@@ -13,3 +13,11 @@
 - [x] Implementar lightbox para visualizar imagens
 - [x] Adicionar informações de contato (WhatsApp, email, telefone)
 - [x] Implementar responsividade para dispositivos móveis
+
+## Integração de Pagamentos
+
+- [x] Adicionar funcionalidade Stripe ao projeto
+- [x] Implementar interface de seleção de meios de pagamento (PIX, Crédito, Débito)
+- [x] Integrar Stripe para pagamentos com cartão
+- [x] Integrar PIX com as chaves fornecidas
+- [ ] Testar fluxo de pagamento completo
