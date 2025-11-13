@@ -5,7 +5,7 @@
   "homepage": "/",
   "type": "module",
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   },
   "license": "MIT",
   "scripts": {
